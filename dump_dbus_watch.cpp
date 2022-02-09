@@ -38,14 +38,14 @@ void DumpDBusWatch::interfaceAdded(sdbusplus::message::message& msg)
     sdbusplus::message::object_path objPath;
     DBusInteracesMap interfaces;
     msg.read(objPath, interfaces);
-    log<level::INFO>(
-        fmt::format("interfaceAdded path ({})", objPath.str).c_str());
     auto iter = interfaces.find(_entryIntf);
     if (iter == interfaces.end())
     {
         // ignore not specific to the dump type being watched
         return;
     }
+    log<level::INFO>(
+        fmt::format("interfaceAdded path ({})", objPath.str).c_str());
     uint32_t id = std::stoul(objPath.filename());
     _entryPropWatchList.emplace(
         objPath, std::make_unique<sdbusplus::bus::match_t>(
@@ -62,14 +62,14 @@ void DumpDBusWatch::interfaceRemoved(sdbusplus::message::message& msg)
     sdbusplus::message::object_path objPath;
     DBusInteracesMap interfaces;
     msg.read(objPath, interfaces);
-    log<level::INFO>(
-        fmt::format("interfaceRemoved path ({})", objPath.str).c_str());
     auto iter = interfaces.find(_entryIntf);
     if (iter == interfaces.end())
     {
         // ignore not specific to the dump type being watched
         return;
     }
+    log<level::INFO>(
+        fmt::format("interfaceRemoved path ({})", objPath.str).c_str());
     _entryPropWatchList.erase(objPath);
 }
 

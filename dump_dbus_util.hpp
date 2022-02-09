@@ -2,13 +2,19 @@
 
 #include "dump_utility.hpp"
 
+#include <fmt/format.h>
+
 #include <cstdint>
+#include <phosphor-logging/log.hpp>
 
 namespace openpower::dump
 {
 using ::openpower::dump::utility::DBusInteracesMap;
 using ::openpower::dump::utility::DBusPropertiesMap;
 using ::openpower::dump::utility::ManagedObjectType;
+using ::phosphor::logging::level;
+using ::phosphor::logging::log;
+
 /**
  * @brief Read progress property from the interface map object
  * @param[in] intfMap map of interfaces and its properties
@@ -37,4 +43,52 @@ uint64_t getDumpSize(sdbusplus::bus::bus& bus, const std::string& objectPath);
  * @return D-Bus entries with properties
  */
 ManagedObjectType getDumpEntries(sdbusplus::bus::bus& bus);
+
+/**
+ * @brief Read D-Bus property to check if system is HMC managed
+ * @detail Read the property from BIOSConfig.Manager interface, if attribute
+ *         is not set it will be assumed system is non HMC managed system.
+ *         Assumption is that if it is HMC managed the attribute will be set.
+ * @param[in] bus D-Bus handle
+ * @return true if HMC managed else false
+ */
+bool isSystemHMCManaged(sdbusplus::bus::bus& bus);
+
+/**
+ * @brief Read property value from the specified object and interface
+ * @param[in] bus D-Bus handle
+ * @param[in] service service which has implemented the interface
+ * @param[in] object object having has implemented the interface
+ * @param[in] intf interface having the property
+ * @param[in] prop name of the property to read
+ * @return property value
+ */
+template <typename T>
+T readDBusProperty(sdbusplus::bus::bus& bus, const std::string& service,
+                   const std::string& object, const std::string& intf,
+                   const std::string& prop)
+{
+    T retVal{};
+    try
+    {
+        auto properties =
+            bus.new_method_call(service.c_str(), object.c_str(),
+                                "org.freedesktop.DBus.Properties", "Get");
+        properties.append(intf);
+        properties.append(prop);
+        auto result = bus.call(properties);
+        result.read(retVal);
+    }
+    catch (const std::exception& ex)
+    {
+        log<level::ERR>(
+            fmt::format("Failed to get the property ({}) interface ({}) "
+                        "error ({}) ",
+                        prop.c_str(), intf.c_str(), ex.what())
+                .c_str());
+        throw;
+    }
+    return retVal;
+}
+
 } // namespace openpower::dump
