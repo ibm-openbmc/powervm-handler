@@ -18,13 +18,13 @@ using ::phosphor::logging::log;
 DumpOffloadHandler::DumpOffloadHandler(sdbusplus::bus::bus& bus,
                                        const std::string& entryIntf,
                                        DumpType dumpType) :
-    _sdbus(bus),
+    _bus(bus),
     _entryIntf(entryIntf), _dumpType(dumpType),
     _dumpWatch(bus, entryIntf, dumpType)
 {
 }
 
-void DumpOffloadHandler::offload()
+void DumpOffloadHandler::offload(const ManagedObjectType& objects)
 {
     try
     {
@@ -34,10 +34,8 @@ void DumpOffloadHandler::offload()
                 _entryIntf, _dumpType)
                 .c_str());
         ManagedObjectType inProgressDumps;
-        ManagedObjectType objects = openpower::dump::getDumpEntries(_sdbus);
         for (auto& object : objects)
         {
-            std::string strObjPath = object.first;
             auto iter = object.second.find(_entryIntf);
             if (iter == object.second.end())
             {
@@ -49,21 +47,21 @@ void DumpOffloadHandler::offload()
             {
                 log<level::INFO>(fmt::format("Dump generation is not completed "
                                              "so not offloading ({})",
-                                             strObjPath)
+                                             object.first.str)
                                      .c_str());
                 inProgressDumps.emplace_back(object.first, object.second);
                 continue;
             }
             log<level::INFO>(
                 fmt::format("DumpOffloadHandler::offload dump object ({})",
-                            strObjPath)
+                            object.first.str)
                     .c_str());
-            uint64_t size = getDumpSize(_sdbus, strObjPath);
+            uint64_t size = getDumpSize(_bus, object.first.str);
             openpower::dump::pldm::sendNewDumpCmd(entryID, _dumpType, size);
         } // end for
 
         // add any inprogress dumps to the watch list
-        _dumpWatch.addInProgressDumpsToWatch(std::move(inProgressDumps));
+        _dumpWatch.addInProgressDumpsToWatch(inProgressDumps);
     }
     catch (const std::exception& ex)
     {

@@ -11,15 +11,16 @@ namespace openpower::dump
 {
 using ::openpower::dump::utility::DumpType;
 using ::openpower::dump::utility::ManagedObjectType;
-class DBusDumpWatcher
+using ::sdbusplus::message::object_path;
+class DumpDBusWatch
 {
   public:
-    DBusDumpWatcher() = delete;
-    DBusDumpWatcher(const DBusDumpWatcher&) = delete;
-    DBusDumpWatcher& operator=(const DBusDumpWatcher&) = delete;
-    DBusDumpWatcher(DBusDumpWatcher&&) = delete;
-    DBusDumpWatcher& operator=(DBusDumpWatcher&&) = delete;
-    virtual ~DBusDumpWatcher() = default;
+    DumpDBusWatch() = delete;
+    DumpDBusWatch(const DumpDBusWatch&) = delete;
+    DumpDBusWatch& operator=(const DumpDBusWatch&) = delete;
+    DumpDBusWatch(DumpDBusWatch&&) = delete;
+    DumpDBusWatch& operator=(DumpDBusWatch&&) = delete;
+    virtual ~DumpDBusWatch() = default;
 
     /**
      * @brief Watch on new dump objects created and property change
@@ -27,27 +28,27 @@ class DBusDumpWatcher
      * @param[in] entryIntf - dump entry interface (BMC/Host/SBE/Hardware)
      * @param[in] dumpType - dump type to watch
      */
-    DBusDumpWatcher(sdbusplus::bus::bus& bus, const std::string& entryIntf,
-                    DumpType dumpType);
+    DumpDBusWatch(sdbusplus::bus::bus& bus, const std::string& entryIntf,
+                  DumpType dumpType);
 
     /**
      * @brief Add all in progress dumps to property watch
      * @param[in] objects dump objects whose progress is not yet completed
      * @return void
      */
-    void addInProgressDumpsToWatch(ManagedObjectType&& objects);
+    void addInProgressDumpsToWatch(const ManagedObjectType& objects);
 
   private:
     /**
      * @brief Callback method for creation of dump entry object
-     * @param[in] msg response msg from D-bus request
+     * @param[in] msg response msg from D-Bus request
      * @return void
      */
     void interfaceAdded(sdbusplus::message::message& msg);
 
     /**
      * @brief Callback method for deletion of dump entry object
-     * @param[in] msg response msg from D-bus request
+     * @param[in] msg response msg from D-Bus request
      * @return void
      */
     void interfaceRemoved(sdbusplus::message::message& msg);
@@ -56,10 +57,10 @@ class DBusDumpWatcher
      * @brief Callback method for property change on the entry object
      * @param[in] objPath Object path of the dump entry
      * @param[in] id ID of the dump entry
-     * @param[in] msg response msg from D-bus request
+     * @param[in] msg response msg from D-Bus request
      * @return void
      */
-    void propertiesChanged(const std::string& objPath, uint32_t id,
+    void propertiesChanged(const object_path& objPath, uint32_t id,
                            sdbusplus::message::message& msg);
 
     /** @brief D-Bus to connect to */
@@ -78,7 +79,7 @@ class DBusDumpWatcher
     std::unique_ptr<sdbusplus::bus::match_t> _intfRemWatch;
 
     /** @brief map of property change request for the corresponding entry */
-    std::map<std::string, std::unique_ptr<sdbusplus::bus::match_t>>
+    std::map<object_path, std::unique_ptr<sdbusplus::bus::match_t>>
         _entryPropWatchList;
 };
 } // namespace openpower::dump

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dbus_dump_watcher.hpp"
+#include "dump_dbus_watch.hpp"
 #include "dump_utility.hpp"
 
 #include <sdbusplus/bus.hpp>
@@ -40,12 +40,13 @@ class DumpOffloadHandler
 
     /**
      * @brief Offload dump by sending request to PLDM
+     * @param[in] existing dump objects
      */
-    void offload();
+    void offload(const ManagedObjectType& objects);
 
   protected:
     /* @brief sdbusplus DBus bus connection. */
-    sdbusplus::bus::bus& _sdbus;
+    sdbusplus::bus::bus& _bus;
 
     /* @brief entry interface this object supports */
     const std::string _entryIntf;
@@ -54,6 +55,6 @@ class DumpOffloadHandler
     const DumpType _dumpType;
 
     /* @brief watch on interfaces added/removed and property */
-    openpower::dump::DBusDumpWatcher _dumpWatch;
+    openpower::dump::DumpDBusWatch _dumpWatch;
 };
 } // namespace openpower::dump

@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "dbus_dump_watcher.hpp"
+#include "dump_dbus_watch.hpp"
 
 #include "dump_dbus_util.hpp"
 #include "dump_send_pldm_cmd.hpp"
@@ -18,9 +18,8 @@ using ::phosphor::logging::level;
 using ::phosphor::logging::log;
 using ::sdbusplus::bus::match::rules::sender;
 
-DBusDumpWatcher::DBusDumpWatcher(sdbusplus::bus::bus& bus,
-                                 const std::string& entryIntf,
-                                 DumpType dumpType) :
+DumpDBusWatch::DumpDBusWatch(sdbusplus::bus::bus& bus,
+                             const std::string& entryIntf, DumpType dumpType) :
     _bus(bus),
     _entryIntf(entryIntf), _dumpType(dumpType),
     _intfAddWatch(std::make_unique<sdbusplus::bus::match_t>(
@@ -34,15 +33,13 @@ DBusDumpWatcher::DBusDumpWatcher(sdbusplus::bus::bus& bus,
 {
 }
 
-void DBusDumpWatcher::interfaceAdded(sdbusplus::message::message& msg)
+void DumpDBusWatch::interfaceAdded(sdbusplus::message::message& msg)
 {
     sdbusplus::message::object_path objPath;
     DBusInteracesMap interfaces;
     msg.read(objPath, interfaces);
-    std::string strObjPath = objPath;
     log<level::INFO>(
-        fmt::format("DBusDumpWatcher::interfaceAdded path ({})", strObjPath)
-            .c_str());
+        fmt::format("interfaceAdded path ({})", objPath.str).c_str());
     auto iter = interfaces.find(_entryIntf);
     if (iter == interfaces.end())
     {
@@ -51,64 +48,63 @@ void DBusDumpWatcher::interfaceAdded(sdbusplus::message::message& msg)
     }
     uint32_t id = std::stoul(objPath.filename());
     _entryPropWatchList.emplace(
-        strObjPath, std::make_unique<sdbusplus::bus::match_t>(
-                        _bus,
-                        sdbusplus::bus::match::rules::propertiesChanged(
-                            strObjPath, progressIntf),
-                        [this, strObjPath, id](auto& msg) {
-                            this->propertiesChanged(strObjPath, id, msg);
-                        }));
+        objPath, std::make_unique<sdbusplus::bus::match_t>(
+                     _bus,
+                     sdbusplus::bus::match::rules::propertiesChanged(
+                         objPath, progressIntf),
+                     [this, objPath, id](auto& msg) {
+                         this->propertiesChanged(objPath, id, msg);
+                     }));
 }
 
-void DBusDumpWatcher::interfaceRemoved(sdbusplus::message::message& msg)
+void DumpDBusWatch::interfaceRemoved(sdbusplus::message::message& msg)
 {
     sdbusplus::message::object_path objPath;
     DBusInteracesMap interfaces;
     msg.read(objPath, interfaces);
-    std::string strObjPath = objPath;
     log<level::INFO>(
-        fmt::format("DBusDumpWatcher::interfaceRemoved path ({})", strObjPath)
-            .c_str());
+        fmt::format("interfaceRemoved path ({})", objPath.str).c_str());
     auto iter = interfaces.find(_entryIntf);
     if (iter == interfaces.end())
     {
         // ignore not specific to the dump type being watched
         return;
     }
-    _entryPropWatchList.erase(strObjPath);
+    _entryPropWatchList.erase(objPath);
 }
 
-void DBusDumpWatcher::propertiesChanged(const std::string& objPath, uint32_t id,
-                                        sdbusplus::message::message& msg)
+void DumpDBusWatch::propertiesChanged(const object_path& objPath, uint32_t id,
+                                      sdbusplus::message::message& msg)
 {
     std::string interface;
     DBusPropertiesMap propMap;
     msg.read(interface, propMap);
-    log<level::INFO>(
-        fmt::format("propertiesChanged objectpath ({}) id ({})", objPath, id)
-            .c_str());
+    log<level::INFO>(fmt::format("propertiesChanged object path ({}) id ({})",
+                                 objPath.str, id)
+                         .c_str());
 
     bool fcomplete = isDumpProgressCompleted(propMap);
     if (!fcomplete)
     {
         log<level::DEBUG>(
-            fmt::format("propertiesChanged objectpath ({}) status is not "
+            fmt::format("propertiesChanged object path ({}) status is not "
                         "complete",
-                        objPath)
+                        objPath.str)
                 .c_str());
         return;
     }
 
-    uint64_t size = getDumpSize(_bus, objPath);
+    uint64_t size = getDumpSize(_bus, objPath.str);
     openpower::dump::pldm::sendNewDumpCmd(id, _dumpType, size);
 
     _entryPropWatchList.erase(objPath);
 }
 
-void DBusDumpWatcher::addInProgressDumpsToWatch(ManagedObjectType&& objects)
+void DumpDBusWatch::addInProgressDumpsToWatch(const ManagedObjectType& objects)
 {
     for (auto& object : objects)
     {
+        object_path objectPath = object.first;
         auto iter = object.second.find(_entryIntf);
         if (iter == object.second.end())
         {
@@ -117,12 +113,10 @@ void DBusDumpWatcher::addInProgressDumpsToWatch(ManagedObjectType&& objects)
         bool fcomplete = isDumpProgressCompleted(object.second);
         if (!fcomplete)
         {
-            std::string objectPath = object.first;
             uint32_t id = std::stoul(object.first.filename());
             log<level::INFO>(
-                fmt::format("DumpOffloadBmc addInProgresDumps to watch "
-                            "objectPath ({})",
-                            objectPath)
+                fmt::format("addInProgressDumpsToWatch object path ({})",
+                            objectPath.str)
                     .c_str());
             _entryPropWatchList.emplace(
                 objectPath, std::make_unique<sdbusplus::bus::match_t>(

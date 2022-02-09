@@ -36,6 +36,9 @@ class DumpOffloadManager
     void offload();
 
   private:
+    /** @brief D-Bus to connect to */
+    sdbusplus::bus::bus& _bus;
+
     /*@brief list of dump offload objects */
     std::vector<std::unique_ptr<DumpOffloadHandler>> _dumpOffloadList;
 };

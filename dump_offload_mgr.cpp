@@ -2,9 +2,11 @@
 
 #include "dump_offload_mgr.hpp"
 
+#include "dump_dbus_util.hpp"
+
 namespace openpower::dump
 {
-DumpOffloadManager::DumpOffloadManager(sdbusplus::bus::bus& bus)
+DumpOffloadManager::DumpOffloadManager(sdbusplus::bus::bus& bus) : _bus(bus)
 {
     // add bmc dump offload handler to the list of dump types to offload
     std::unique_ptr<DumpOffloadHandler> bmcDump =
@@ -31,9 +33,12 @@ DumpOffloadManager::DumpOffloadManager(sdbusplus::bus::bus& bus)
 
 void DumpOffloadManager::offload()
 {
+    // we can query only on the dump service not on individual entry types,
+    // so we get dumps of all types
+    ManagedObjectType objects = openpower::dump::getDumpEntries(_bus);
     for (auto& dump : _dumpOffloadList)
     {
-        dump->offload();
+        dump->offload(objects);
     }
 }
 } // namespace openpower::dump

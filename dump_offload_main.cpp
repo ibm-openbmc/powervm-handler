@@ -23,8 +23,7 @@ int main()
     catch (const std::exception& ex)
     {
         log<level::ERR>(
-            fmt::format("exception caught during application load({})",
-                        ex.what())
+            fmt::format("exception during application load({})", ex.what())
                 .c_str());
         throw;
     }
