@@ -18,6 +18,7 @@ DumpOffloadManager::DumpOffloadManager(sdbusplus::bus::bus& bus) : _bus(bus)
         log<level::INFO>("DumpOffloadManager HMC managed system");
         return;
     }
+
     // Perform offload only if host is in running state, else add watch on
     // BootProgress property and offload when it moves to running state.
     //
@@ -105,12 +106,17 @@ void DumpOffloadManager::addOffloadHandlers()
 
 void DumpOffloadManager::offload()
 {
-    // we can query only on the dump service not on individual entry types,
-    // so we get dumps of all types
-    ManagedObjectType objects = openpower::dump::getDumpEntries(_bus);
-    for (auto& dump : _dumpOffloadList)
+    // system can change from hon-hmc to hmc managed system, do not offload
+    // if system changed to hmc managed system
+    if (!isSystemHMCManaged(_bus))
     {
-        dump->offload(objects);
+        // we can query only on the dump service not on individual entry types,
+        // so we get dumps of all types
+        ManagedObjectType objects = openpower::dump::getDumpEntries(_bus);
+        for (auto& dump : _dumpOffloadList)
+        {
+            dump->offload(objects);
+        }
     }
 }
 } // namespace openpower::dump

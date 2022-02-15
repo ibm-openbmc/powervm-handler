@@ -36,6 +36,12 @@ DumpEntryDBusWatch::DumpEntryDBusWatch(sdbusplus::bus::bus& bus,
 
 void DumpEntryDBusWatch::interfaceAdded(sdbusplus::message::message& msg)
 {
+    // system can change from hon-hmc to hmc managed system, do not offload
+    // if system changed to hmc managed system
+    if (isSystemHMCManaged(_bus))
+    {
+        return;
+    }
     sdbusplus::message::object_path objPath;
     DBusInteracesMap interfaces;
     msg.read(objPath, interfaces);
@@ -78,6 +84,12 @@ void DumpEntryDBusWatch::propertiesChanged(const object_path& objPath,
                                            uint32_t id,
                                            sdbusplus::message::message& msg)
 {
+    // system can change from hon-hmc to hmc managed system, do not offload
+    // if system changed to hmc managed system
+    if (isSystemHMCManaged(_bus))
+    {
+        return;
+    }
     std::string interface;
     DBusPropertiesMap propMap;
     msg.read(interface, propMap);
