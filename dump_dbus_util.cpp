@@ -3,8 +3,6 @@
 #include "dump_dbus_util.hpp"
 
 #include <variant>
-#include <xyz/openbmc_project/BIOSConfig/Manager/server.hpp>
-
 namespace openpower::dump
 {
 
@@ -59,7 +57,7 @@ uint64_t getDumpSize(sdbusplus::bus::bus& bus, const std::string& objectPath)
     try
     {
         auto retVal = readDBusProperty<DbusVariantType>(
-            bus, dumpService, objectPath, entryIntf, "size");
+            bus, dumpService, objectPath, entryIntf, "Size");
         const uint64_t* sizePtr = std::get_if<uint64_t>(&retVal);
         if (sizePtr == nullptr)
         {
@@ -158,4 +156,44 @@ bool isSystemHMCManaged(sdbusplus::bus::bus& bus)
     }
     return false;
 }
+
+bool isHostRunning(sdbusplus::bus::bus& bus)
+{
+    try
+    {
+        constexpr auto hostStateObjPath = "/xyz/openbmc_project/state/host0";
+        auto retVal = readDBusProperty<DBusProgressValue_t>(
+            bus, "xyz.openbmc_project.State.Host", hostStateObjPath,
+            "xyz.openbmc_project.State.Boot.Progress", "BootProgress");
+        const std::string* progPtr = std::get_if<std::string>(&retVal);
+        if (progPtr == nullptr)
+        {
+            std::string err = fmt::format(
+                "BootProgress value not set for host state object ({})",
+                hostStateObjPath);
+            log<level::ERR>(err.c_str());
+            return false;
+        }
+
+        log<level::ERR>(
+            fmt::format("DEVENDER BootProgress value set is ({})", *progPtr)
+                .c_str());
+        ProgressStages bootProgess = sdbusplus::xyz::openbmc_project::State::
+            Boot::server::Progress::convertProgressStagesFromString(*progPtr);
+        if ((bootProgess == ProgressStages::SystemInitComplete) ||
+            (bootProgess == ProgressStages::OSStart) ||
+            (bootProgess == ProgressStages::OSRunning))
+        {
+            return true;
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        log<level::ERR>(
+            fmt::format("Failed to read BootProgress property ({})", ex.what())
+                .c_str());
+    }
+    return false;
+}
+
 } // namespace openpower::dump

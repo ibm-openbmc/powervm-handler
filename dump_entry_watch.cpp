@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "dump_dbus_watch.hpp"
+#include "dump_entry_watch.hpp"
 
 #include "dump_dbus_util.hpp"
 #include "dump_send_pldm_cmd.hpp"
@@ -18,8 +18,9 @@ using ::phosphor::logging::level;
 using ::phosphor::logging::log;
 using ::sdbusplus::bus::match::rules::sender;
 
-DumpDBusWatch::DumpDBusWatch(sdbusplus::bus::bus& bus,
-                             const std::string& entryIntf, DumpType dumpType) :
+DumpEntryDBusWatch::DumpEntryDBusWatch(sdbusplus::bus::bus& bus,
+                                       const std::string& entryIntf,
+                                       DumpType dumpType) :
     _bus(bus),
     _entryIntf(entryIntf), _dumpType(dumpType),
     _intfAddWatch(std::make_unique<sdbusplus::bus::match_t>(
@@ -33,7 +34,7 @@ DumpDBusWatch::DumpDBusWatch(sdbusplus::bus::bus& bus,
 {
 }
 
-void DumpDBusWatch::interfaceAdded(sdbusplus::message::message& msg)
+void DumpEntryDBusWatch::interfaceAdded(sdbusplus::message::message& msg)
 {
     sdbusplus::message::object_path objPath;
     DBusInteracesMap interfaces;
@@ -57,7 +58,7 @@ void DumpDBusWatch::interfaceAdded(sdbusplus::message::message& msg)
                      }));
 }
 
-void DumpDBusWatch::interfaceRemoved(sdbusplus::message::message& msg)
+void DumpEntryDBusWatch::interfaceRemoved(sdbusplus::message::message& msg)
 {
     sdbusplus::message::object_path objPath;
     DBusInteracesMap interfaces;
@@ -73,8 +74,9 @@ void DumpDBusWatch::interfaceRemoved(sdbusplus::message::message& msg)
     _entryPropWatchList.erase(objPath);
 }
 
-void DumpDBusWatch::propertiesChanged(const object_path& objPath, uint32_t id,
-                                      sdbusplus::message::message& msg)
+void DumpEntryDBusWatch::propertiesChanged(const object_path& objPath,
+                                           uint32_t id,
+                                           sdbusplus::message::message& msg)
 {
     std::string interface;
     DBusPropertiesMap propMap;
@@ -100,7 +102,8 @@ void DumpDBusWatch::propertiesChanged(const object_path& objPath, uint32_t id,
     _entryPropWatchList.erase(objPath);
 }
 
-void DumpDBusWatch::addInProgressDumpsToWatch(const ManagedObjectType& objects)
+void DumpEntryDBusWatch::addInProgressDumpsToWatch(
+    const ManagedObjectType& objects)
 {
     for (auto& object : objects)
     {

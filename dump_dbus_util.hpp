@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <phosphor-logging/log.hpp>
+#include <xyz/openbmc_project/State/Boot/Progress/server.hpp>
 
 namespace openpower::dump
 {
@@ -14,6 +15,12 @@ using ::openpower::dump::utility::DBusPropertiesMap;
 using ::openpower::dump::utility::ManagedObjectType;
 using ::phosphor::logging::level;
 using ::phosphor::logging::log;
+
+using ProgressStages = sdbusplus::xyz::openbmc_project::State::Boot::server::
+    Progress::ProgressStages;
+using DBusProgressValue_t =
+    std::variant<std::string, bool, std::vector<uint8_t>,
+                 std::vector<std::string>>;
 
 /**
  * @brief Read progress property from the interface map object
@@ -91,4 +98,11 @@ T readDBusProperty(sdbusplus::bus::bus& bus, const std::string& service,
     return retVal;
 }
 
+/**
+ * @brief Read D-Bus property to check if host is in running state
+ * @detail Read the Boot.Progress property to determine if host is running.
+ * @param[in] bus D-Bus handle
+ * @return true if host is running else false
+ */
+bool isHostRunning(sdbusplus::bus::bus& bus);
 } // namespace openpower::dump

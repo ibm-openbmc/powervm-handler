@@ -16,34 +16,91 @@ DumpOffloadManager::DumpOffloadManager(sdbusplus::bus::bus& bus) : _bus(bus)
     if (isSystemHMCManaged(_bus))
     {
         log<level::INFO>("DumpOffloadManager HMC managed system");
+        return;
+    }
+    // Perform offload only if host is in running state, else add watch on
+    // BootProgress property and offload when it moves to running state.
+    //
+    // At present we do not have a system-d target which indicates host is
+    // in running target with which we could have added wait-for condition
+    // for this service to start.
+    if (isHostRunning(bus) == false)
+    {
+        log<level::ERR>("Host is not running do not offload dump, add watch"
+                        " on host state");
+        _hostStatePropWatch = std::make_unique<sdbusplus::bus::match_t>(
+            _bus,
+            sdbusplus::bus::match::rules::propertiesChanged(
+                "/xyz/openbmc_project/state/host0",
+                "xyz.openbmc_project.State.Host"),
+            [this](auto& msg) { this->propertiesChanged(msg); });
     }
     else
     {
-        // add bmc dump offload handler to the list of dump types to offload
-        std::unique_ptr<DumpOffloadHandler> bmcDump =
-            std::make_unique<DumpOffloadHandler>(bus, bmcEntryIntf,
-                                                 DumpType::bmc);
-        _dumpOffloadList.push_back(std::move(bmcDump));
-
-        // add host dump offload handler to the list of dump types to offload
-        std::unique_ptr<DumpOffloadHandler> hostbootDump =
-            std::make_unique<DumpOffloadHandler>(bus, hostbootEntryIntf,
-                                                 DumpType::hostboot);
-        _dumpOffloadList.push_back(std::move(hostbootDump));
-
-        // add sbe dump offload handler to the list of dump types to offload
-        std::unique_ptr<DumpOffloadHandler> sbeDump =
-            std::make_unique<DumpOffloadHandler>(bus, sbeEntryIntf,
-                                                 DumpType::sbe);
-        _dumpOffloadList.push_back(std::move(sbeDump));
-
-        // add hardware dump offload handler to the list of dump types to
-        // offload
-        std::unique_ptr<DumpOffloadHandler> hardwareDump =
-            std::make_unique<DumpOffloadHandler>(bus, hardwareEntryIntf,
-                                                 DumpType::hardware);
-        _dumpOffloadList.push_back(std::move(hardwareDump));
+        addOffloadHandlers();
     }
+}
+
+void DumpOffloadManager::propertiesChanged(sdbusplus::message::message& msg)
+{
+    std::string intf;
+    DBusPropertiesMap propMap;
+    msg.read(intf, propMap);
+    log<level::DEBUG>(
+        fmt::format("propertiesChanged interface ({}) ", intf).c_str());
+    for (auto prop : propMap)
+    {
+        if (prop.first == "BootProgress")
+        {
+            auto progress = std::get_if<std::string>(&prop.second);
+            if (progress != nullptr)
+            {
+                ProgressStages bootProgress =
+                    sdbusplus::xyz::openbmc_project::State::Boot::server::
+                        Progress::convertProgressStagesFromString(*progress);
+                if ((bootProgress == ProgressStages::SystemInitComplete) ||
+                    (bootProgress == ProgressStages::OSStart) ||
+                    (bootProgress == ProgressStages::OSRunning))
+                {
+                    // we are checking for multiple values as part of
+                    // BootProgress dump watch so we might get multiple
+                    // notifications so adding check to create handlers
+                    // only once.
+                    if (_fOffloaded == false)
+                    {
+                        addOffloadHandlers();
+                        _fOffloaded = true;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void DumpOffloadManager::addOffloadHandlers()
+{
+    // add bmc dump offload handler to the list of dump types to offload
+    std::unique_ptr<DumpOffloadHandler> bmcDump =
+        std::make_unique<DumpOffloadHandler>(_bus, bmcEntryIntf, DumpType::bmc);
+    _dumpOffloadList.push_back(std::move(bmcDump));
+
+    // add host dump offload handler to the list of dump types to offload
+    std::unique_ptr<DumpOffloadHandler> hostbootDump =
+        std::make_unique<DumpOffloadHandler>(_bus, hostbootEntryIntf,
+                                             DumpType::hostboot);
+    _dumpOffloadList.push_back(std::move(hostbootDump));
+
+    // add sbe dump offload handler to the list of dump types to offload
+    std::unique_ptr<DumpOffloadHandler> sbeDump =
+        std::make_unique<DumpOffloadHandler>(_bus, sbeEntryIntf, DumpType::sbe);
+    _dumpOffloadList.push_back(std::move(sbeDump));
+
+    // add hardware dump offload handler to the list of dump types to
+    // offload
+    std::unique_ptr<DumpOffloadHandler> hardwareDump =
+        std::make_unique<DumpOffloadHandler>(_bus, hardwareEntryIntf,
+                                             DumpType::hardware);
+    _dumpOffloadList.push_back(std::move(hardwareDump));
 }
 
 void DumpOffloadManager::offload()
