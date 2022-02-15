@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dump_dbus_watch.hpp"
+#include "dump_entry_watch.hpp"
 #include "dump_utility.hpp"
 
 #include <sdbusplus/bus.hpp>
@@ -55,6 +55,6 @@ class DumpOffloadHandler
     const DumpType _dumpType;
 
     /* @brief watch on interfaces added/removed and property */
-    openpower::dump::DumpDBusWatch _dumpWatch;
+    openpower::dump::DumpEntryDBusWatch _dumpWatch;
 };
 } // namespace openpower::dump
