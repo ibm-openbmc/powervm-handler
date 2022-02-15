@@ -1,3 +1,4 @@
+#include "dump_dbus_util.hpp"
 #include "dump_offload_mgr.hpp"
 
 #include <fmt/format.h>
@@ -15,8 +16,16 @@ int main()
     {
         auto bus = sdbusplus::bus::new_default();
         auto event = sdeventplus::Event::get_default();
-        openpower::dump::DumpOffloadManager manager(bus);
-        manager.offload();
+        // Changing a system from hmc-managed to non-hmc manged is a disruptive
+        // process (Power off the system, do some clean ups and IPL).
+        // Changing a system from non-hmc managed to hmc-manged can be done at
+        // runtime.
+        // Not creating offloader objects if system is HMC managed
+        if (!openpower::dump::isSystemHMCManaged(bus))
+        {
+            openpower::dump::DumpOffloadManager manager(bus);
+            manager.offload();
+        }
         bus.attach_event(event.get(), SD_EVENT_PRIORITY_NORMAL);
         return event.loop();
     }

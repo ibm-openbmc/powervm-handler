@@ -59,7 +59,7 @@ executable(
     'dump_offload_handler.cpp',
     'dump_dbus_util.cpp',
     'pldm_utils.cpp',
-    'dump_dbus_watch.cpp',
+    'dump_entry_watch.cpp',
     'dump_dbus_util.cpp',
     'dump_send_pldm_cmd.cpp',
     'pldm_oem_cmds.cpp',
