@@ -36,10 +36,29 @@ class DumpOffloadManager
     void offload();
 
   private:
+    /**
+     * @brief helper method to add offload handlers
+     * @return void
+     */
+    void addOffloadHandlers();
+
+    /**
+     * @brief Callback method for property change on the host state object
+     * @param[in] msg response msg from D-Bus request
+     * @return void
+     */
+    void propertiesChanged(sdbusplus::message::message& msg);
+
     /** @brief D-Bus to connect to */
     sdbusplus::bus::bus& _bus;
 
+    /** @brief flag to ensure offload handlers are created only once */
+    bool _fOffloaded = false;
+
     /*@brief list of dump offload objects */
     std::vector<std::unique_ptr<DumpOffloadHandler>> _dumpOffloadList;
+
+    /*@brief watch for host state change */
+    std::unique_ptr<sdbusplus::bus::match_t> _hostStatePropWatch;
 };
 } // namespace openpower::dump

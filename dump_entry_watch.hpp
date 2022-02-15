@@ -12,15 +12,22 @@ namespace openpower::dump
 using ::openpower::dump::utility::DumpType;
 using ::openpower::dump::utility::ManagedObjectType;
 using ::sdbusplus::message::object_path;
-class DumpDBusWatch
+
+/**
+ * @class DumpEntryDBusWatch
+ * @brief Add watch on new dump entries created so as to offload
+ * @details Adds watch on the dump progress property for the newly created
+ *  dumps. Initiates offload when dump progress property is changed to complete
+ */
+class DumpEntryDBusWatch
 {
   public:
-    DumpDBusWatch() = delete;
-    DumpDBusWatch(const DumpDBusWatch&) = delete;
-    DumpDBusWatch& operator=(const DumpDBusWatch&) = delete;
-    DumpDBusWatch(DumpDBusWatch&&) = delete;
-    DumpDBusWatch& operator=(DumpDBusWatch&&) = delete;
-    virtual ~DumpDBusWatch() = default;
+    DumpEntryDBusWatch() = delete;
+    DumpEntryDBusWatch(const DumpEntryDBusWatch&) = delete;
+    DumpEntryDBusWatch& operator=(const DumpEntryDBusWatch&) = delete;
+    DumpEntryDBusWatch(DumpEntryDBusWatch&&) = delete;
+    DumpEntryDBusWatch& operator=(DumpEntryDBusWatch&&) = delete;
+    virtual ~DumpEntryDBusWatch() = default;
 
     /**
      * @brief Watch on new dump objects created and property change
@@ -28,8 +35,8 @@ class DumpDBusWatch
      * @param[in] entryIntf - dump entry interface (BMC/Host/SBE/Hardware)
      * @param[in] dumpType - dump type to watch
      */
-    DumpDBusWatch(sdbusplus::bus::bus& bus, const std::string& entryIntf,
-                  DumpType dumpType);
+    DumpEntryDBusWatch(sdbusplus::bus::bus& bus, const std::string& entryIntf,
+                       DumpType dumpType);
 
     /**
      * @brief Add all in progress dumps to property watch

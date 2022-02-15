@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "dump_dbus_watch.hpp"
+#include "dump_entry_watch.hpp"
 
 #include "dump_dbus_util.hpp"
 #include "dump_send_pldm_cmd.hpp"
@@ -18,8 +18,9 @@ using ::phosphor::logging::level;
 using ::phosphor::logging::log;
 using ::sdbusplus::bus::match::rules::sender;
 
-DumpDBusWatch::DumpDBusWatch(sdbusplus::bus::bus& bus,
-                             const std::string& entryIntf, DumpType dumpType) :
+DumpEntryDBusWatch::DumpEntryDBusWatch(sdbusplus::bus::bus& bus,
+                                       const std::string& entryIntf,
+                                       DumpType dumpType) :
     _bus(bus),
     _entryIntf(entryIntf), _dumpType(dumpType),
     _intfAddWatch(std::make_unique<sdbusplus::bus::match_t>(
@@ -33,19 +34,25 @@ DumpDBusWatch::DumpDBusWatch(sdbusplus::bus::bus& bus,
 {
 }
 
-void DumpDBusWatch::interfaceAdded(sdbusplus::message::message& msg)
+void DumpEntryDBusWatch::interfaceAdded(sdbusplus::message::message& msg)
 {
+    // system can change from hon-hmc to hmc managed system, do not offload
+    // if system changed to hmc managed system
+    if (isSystemHMCManaged(_bus))
+    {
+        return;
+    }
     sdbusplus::message::object_path objPath;
     DBusInteracesMap interfaces;
     msg.read(objPath, interfaces);
-    log<level::INFO>(
-        fmt::format("interfaceAdded path ({})", objPath.str).c_str());
     auto iter = interfaces.find(_entryIntf);
     if (iter == interfaces.end())
     {
         // ignore not specific to the dump type being watched
         return;
     }
+    log<level::INFO>(
+        fmt::format("interfaceAdded path ({})", objPath.str).c_str());
     uint32_t id = std::stoul(objPath.filename());
     _entryPropWatchList.emplace(
         objPath, std::make_unique<sdbusplus::bus::match_t>(
@@ -57,25 +64,32 @@ void DumpDBusWatch::interfaceAdded(sdbusplus::message::message& msg)
                      }));
 }
 
-void DumpDBusWatch::interfaceRemoved(sdbusplus::message::message& msg)
+void DumpEntryDBusWatch::interfaceRemoved(sdbusplus::message::message& msg)
 {
     sdbusplus::message::object_path objPath;
     DBusInteracesMap interfaces;
     msg.read(objPath, interfaces);
-    log<level::INFO>(
-        fmt::format("interfaceRemoved path ({})", objPath.str).c_str());
     auto iter = interfaces.find(_entryIntf);
     if (iter == interfaces.end())
     {
         // ignore not specific to the dump type being watched
         return;
     }
+    log<level::INFO>(
+        fmt::format("interfaceRemoved path ({})", objPath.str).c_str());
     _entryPropWatchList.erase(objPath);
 }
 
-void DumpDBusWatch::propertiesChanged(const object_path& objPath, uint32_t id,
-                                      sdbusplus::message::message& msg)
+void DumpEntryDBusWatch::propertiesChanged(const object_path& objPath,
+                                           uint32_t id,
+                                           sdbusplus::message::message& msg)
 {
+    // system can change from hon-hmc to hmc managed system, do not offload
+    // if system changed to hmc managed system
+    if (isSystemHMCManaged(_bus))
+    {
+        return;
+    }
     std::string interface;
     DBusPropertiesMap propMap;
     msg.read(interface, propMap);
@@ -100,7 +114,8 @@ void DumpDBusWatch::propertiesChanged(const object_path& objPath, uint32_t id,
     _entryPropWatchList.erase(objPath);
 }
 
-void DumpDBusWatch::addInProgressDumpsToWatch(const ManagedObjectType& objects)
+void DumpEntryDBusWatch::addInProgressDumpsToWatch(
+    const ManagedObjectType& objects)
 {
     for (auto& object : objects)
     {
