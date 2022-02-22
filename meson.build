@@ -37,6 +37,7 @@ phosphor_logging_dep = dependency(
 
 systemd_dep = dependency('systemd')
 pldm_dep = dependency('libpldm')
+fmt_dep = dependency('fmt')
 
 configure_file(
     input: 'config.h.in',
@@ -50,6 +51,7 @@ dump_offload_deps = [
     sdbusplus_dep,
     sdeventplus_dep,
     pldm_dep,
+    fmt_dep
 ]
 
 subdir('dist')
