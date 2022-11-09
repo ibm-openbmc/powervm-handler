@@ -74,7 +74,7 @@ void DumpWatch::interfaceAdded(sdbusplus::message::message& msg)
                 objPath, std::make_unique<sdbusplus::bus::match_t>(
                              _bus,
                              sdbusplus::bus::match::rules::propertiesChanged(
-                                 objPath, progressIntf),
+                                 objPath.str, progressIntf),
                              [this, objPath](auto& msg) {
                                  this->propertiesChanged(objPath, msg);
                              }));
@@ -160,7 +160,7 @@ void DumpWatch::addInProgressDumpsToWatch(std::vector<std::string> paths)
                 objPath, std::make_unique<sdbusplus::bus::match_t>(
                              _bus,
                              sdbusplus::bus::match::rules::propertiesChanged(
-                                 objPath, progressIntf),
+                                 objPath.str, progressIntf),
                              [this, objPath](auto& msg) {
                                  this->propertiesChanged(objPath, msg);
                              }));

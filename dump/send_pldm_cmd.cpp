@@ -31,8 +31,8 @@ void sendNewDumpCmd(uint32_t dumpId, DumpType dumpType, uint64_t dumpSize)
             pldmDumpType = 0x12; // PLDM_FILE_TYPE_HARDWARE_DUMP
             break;
         default:
-            std::string err =
-                fmt::format("Unsupported dump type ({}) ", dumpType);
+            std::string err = fmt::format("Unsupported dump type ({}) ",
+                                          static_cast<uint32_t>(dumpType));
             log<level::ERR>(err.c_str());
             throw std::out_of_range(err);
             break;
@@ -40,7 +40,8 @@ void sendNewDumpCmd(uint32_t dumpId, DumpType dumpType, uint64_t dumpSize)
 
     log<level::INFO>(fmt::format("sendNewDumpCmd Id({}) Size({}) Type({}) "
                                  "PldmDumpType({})",
-                                 dumpId, dumpSize, dumpType, pldmDumpType)
+                                 dumpId, dumpSize,
+                                 static_cast<uint32_t>(dumpType), pldmDumpType)
                          .c_str());
     openpower::dump::pldm::newFileAvailable(
         dumpId, static_cast<pldm_fileio_file_type>(pldmDumpType), dumpSize);

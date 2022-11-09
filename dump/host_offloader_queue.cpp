@@ -129,7 +129,7 @@ void HostOffloaderQueue::offload()
         log<level::INFO>(
             fmt::format("Queue offload initiating offload ({}) id ({}) "
                         "type ({}) size ({})",
-                        _offloadObjPath, id, type, size)
+                        _offloadObjPath, id, static_cast<uint32_t>(type), size)
                 .c_str());
         openpower::dump::pldm::sendNewDumpCmd(id, type, size);
         _offloadInProgress = true;
