@@ -1,6 +1,6 @@
 [Unit]
 Description=PowerVM Handler Host %i
-Watns=xyz.openbmc_project.Dump.Manager.service
+Wants=xyz.openbmc_project.Dump.Manager.service
 After=xyz.openbmc_project.Dump.Manager.service
 Wants=org.open_power.Dump.Manager.service
 After=org.open_power.Dump.Manager.service
