@@ -90,18 +90,23 @@ void HostOffloaderQueue::hostStateChange(bool isRunning)
     }
 }
 
-void HostOffloaderQueue::hmcStateChange(bool isHMCManagedSystem)
+void HostOffloaderQueue::hmcStateChange(bool hmcManaged)
 {
-    isHMCManagedSystem = isHMCManagedSystem;
-    if (!isHMCManagedSystem)
+    if (isHMCManagedSystem != hmcManaged)
     {
-        // dumps might have been queued while system is HMC managed, offload
-        // them
-        startTimer();
-    }
-    else
-    {
-        stopTimer();
+        isHMCManagedSystem = hmcManaged;
+        if (!isHMCManagedSystem)
+        {
+            // dumps might have been queued while system is HMC managed, offload
+            // them
+            log<level::INFO>("System changed to non HMC managed");
+            startTimer();
+        }
+        else
+        {
+            log<level::INFO>("System changed to HMC managed");
+            stopTimer();
+        }
     }
 }
 
