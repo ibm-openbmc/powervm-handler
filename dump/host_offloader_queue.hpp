@@ -61,9 +61,9 @@ class HostOffloaderQueue
 
     /**
      * @brief HMC state change notification form HMC state watch
-     * @param[in] isHMCManagedSystem - True if system is HMC managed
+     * @param[in] hmcManaged - True if system is HMC managed
      */
-    void hmcStateChange(bool isHMCManagedSystem);
+    void hmcStateChange(bool hmcManaged);
 
   private:
     /**

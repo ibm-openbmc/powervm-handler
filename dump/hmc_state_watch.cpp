@@ -53,12 +53,10 @@ void HMCStateWatch::propertyChanged(sdbusplus::message::message& msg)
                     auto val = std::get_if<std::string>(&attrValue);
                     if (val != nullptr && *val == "Enabled")
                     {
-                        log<level::INFO>("System changed to HMC managed");
                         _dumpQueue.hmcStateChange(true);
                     }
                     else
                     {
-                        log<level::INFO>("System changed to non HMC managed");
                         _dumpQueue.hmcStateChange(false);
                     }
                     break;
