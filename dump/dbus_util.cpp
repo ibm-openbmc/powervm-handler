@@ -154,7 +154,7 @@ bool isHostRunning(sdbusplus::bus::bus& bus)
             bus, "xyz.openbmc_project.State.Host", hostStateObjPath,
             "xyz.openbmc_project.State.Boot.Progress", "BootProgress");
         const ProgressStages* progPtr = std::get_if<ProgressStages>(&retVal);
-        if (progPtr != nullptr)
+        if (progPtr == nullptr)
         {
             return false;
         }
