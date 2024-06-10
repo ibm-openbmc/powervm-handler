@@ -38,9 +38,7 @@ using ManagedObjectType =
 enum class DumpType
 {
     bmc,
-    hardware,
-    hostboot,
-    sbe
+    system
 };
 
 } // namespace openpower::dump::utility
