@@ -70,8 +70,8 @@ void newFileAvailable(uint32_t dumpId, pldm_fileio_file_type pldmDumpType,
     log<level::INFO>(
         fmt::format("encode_new_file_req Instance ID ({}) "
                     "DumpID ({}) DumpType ({}) DumpSize({})  ReqMsgSize({})",
-                    pldmInstanceId, dumpId, pldmDumpType, dumpSize,
-                    newFileAvailReqMsg.size())
+                    pldmInstanceId, dumpId, static_cast<uint8_t>(pldmDumpType),
+                    dumpSize, newFileAvailReqMsg.size())
             .c_str());
     int retCode = encode_new_file_req(
         pldmInstanceId, pldmDumpType, dumpId, dumpSize,
@@ -82,7 +82,7 @@ void newFileAvailable(uint32_t dumpId, pldm_fileio_file_type pldmDumpType,
             fmt::format(
                 "Failed to encode pldm New file req for new dump available "
                 "dumpId({}), pldmDumpType({}),rc({})",
-                dumpId, pldmDumpType, retCode)
+                dumpId, static_cast<uint8_t>(pldmDumpType), retCode)
                 .c_str());
         elog<NotAllowed>(Reason(
             "Acknowledging new file request failed due to encoding error"));
@@ -100,8 +100,8 @@ void newFileAvailable(uint32_t dumpId, pldm_fileio_file_type pldmDumpType,
                 "Failed to send pldm new file request for new dump available, "
                 "dumpId({}), pldmDumpType({}), "
                 "rc({}), errno({}), errmsg({})",
-                dumpId, pldmDumpType, retCode, errorNumber,
-                strerror(errorNumber))
+                dumpId, static_cast<uint8_t>(pldmDumpType), retCode,
+                errorNumber, strerror(errorNumber))
                 .c_str());
         elog<NotAllowed>(Reason("New file available  via pldm is not "
                                 "allowed due to new file request send failed"));

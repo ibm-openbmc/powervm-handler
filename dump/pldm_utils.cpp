@@ -63,8 +63,9 @@ int openPLDM()
     if (fd < 0)
     {
         auto e = errno;
-        log<level::ERR>(
-            fmt::format("pldm_open failed, errno({}), FD({})", e, fd).c_str());
+        log<level::ERR>(fmt::format("pldm_open failed, errno({}), FD({})", e,
+                                    static_cast<int>(fd))
+                            .c_str());
         elog<NotAllowed>(Reason("Required host dump action via pldm is not "
                                 "allowed due to pldm_open failed"));
     }
