@@ -42,6 +42,15 @@ void DumpWatch::interfaceAdded(sdbusplus::message::message& msg)
         sdbusplus::message::object_path objPath;
         DBusInteracesMap interfaces;
         msg.read(objPath, interfaces);
+        DBusInteracesMap::iterator iter = interfaces.begin();
+        if (interfaces.find("com.ibm.Dump.Entry.Hostboot") ==
+                interfaces.end() &&
+            interfaces.find("com.ibm.Dump.Entry.Hardware") ==
+                interfaces.end() &&
+            interfaces.find("com.ibm.Dump.Entry.SBE") == interfaces.end() &&
+            interfaces.find("xyz.openbmc_project.Dump.Entry.BMC") ==
+                interfaces.end())
+            return;
         log<level::INFO>(
             fmt::format("Watch interfaceAdded path ({})", objPath.str).c_str());
 
@@ -96,6 +105,15 @@ void DumpWatch::interfaceRemoved(sdbusplus::message::message& msg)
         sdbusplus::message::object_path objPath;
         DBusInteracesList interfaces;
         msg.read(objPath, interfaces);
+        if (std::find(interfaces.begin(), interfaces.end(),
+                      "com.ibm.Dump.Entry.Hostboot") == interfaces.end() &&
+            std::find(interfaces.begin(), interfaces.end(),
+                      "com.ibm.Dump.Entry.Hardware") == interfaces.end() &&
+            std::find(interfaces.begin(), interfaces.end(),
+                      "com.ibm.Dump.Entry.SBE") == interfaces.end() &&
+            std::find(interfaces.begin(), interfaces.end(),
+                      "xyz.openbmc_project.Dump.Entry.BMC") == interfaces.end())
+            return;
         log<level::INFO>(
             fmt::format("Watch interfaceRemoved path ({})", objPath.str)
                 .c_str());
