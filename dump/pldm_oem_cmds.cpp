@@ -19,6 +19,7 @@ using namespace phosphor::logging;
 
 constexpr auto eidPath = "/usr/share/pldm/host_eid";
 constexpr mctp_eid_t defaultEIDValue = 9;
+PLDMInstanceManager instanceManager;
 
 using NotAllowed = sdbusplus::xyz::openbmc_project::Common::Error::NotAllowed;
 using Reason = xyz::openbmc_project::Common::NotAllowed::REASON;
@@ -73,11 +74,13 @@ void newFileAvailable(uint32_t dumpId, pldm_fileio_file_type pldmDumpType,
                     pldmInstanceId, dumpId, static_cast<uint16_t>(pldmDumpType),
                     dumpSize, newFileAvailReqMsg.size())
             .c_str());
+
     int retCode = encode_new_file_req(
         pldmInstanceId, pldmDumpType, dumpId, dumpSize,
         reinterpret_cast<pldm_msg*>(newFileAvailReqMsg.data()));
     if (retCode != PLDM_SUCCESS)
     {
+        freePLDMInstanceID(pldmInstanceId, mctpEndPointId);
         log<level::ERR>(
             fmt::format(
                 "Failed to encode pldm New file req for new dump available "
@@ -88,12 +91,27 @@ void newFileAvailable(uint32_t dumpId, pldm_fileio_file_type pldmDumpType,
             "Acknowledging new file request failed due to encoding error"));
     }
 
-    internal::CustomFd pldmFd(openPLDM());
+    retCode = openPLDM(mctpEndPointId);
+    if (retCode < 0)
+    {
+        freePLDMInstanceID(pldmInstanceId, mctpEndPointId);
+        log<level::ERR>(fmt::format("Failed to openPLDM for new dump available "
+                                    "dumpId({}), pldmDumpType({}),rc({})",
+                                    dumpId, static_cast<uint16_t>(pldmDumpType),
+                                    retCode)
+                            .c_str());
+        elog<NotAllowed>(Reason(
+            "Acknowledging new file request failed due to openPLDM error"));
+    }
 
-    retCode = pldm_send(mctpEndPointId, pldmFd(), newFileAvailReqMsg.data(),
-                        newFileAvailReqMsg.size());
+    pldm_tid_t pldmTID = static_cast<pldm_tid_t>(mctpEndPointId);
+    retCode = pldm_transport_send_msg(pldmTransport, pldmTID,
+                                      newFileAvailReqMsg.data(),
+                                      newFileAvailReqMsg.size());
     if (retCode != PLDM_REQUESTER_SUCCESS)
     {
+        freePLDMInstanceID(pldmInstanceId, mctpEndPointId);
+        pldmClose();
         auto errorNumber = errno;
         log<level::ERR>(
             fmt::format(
@@ -106,5 +124,8 @@ void newFileAvailable(uint32_t dumpId, pldm_fileio_file_type pldmDumpType,
         elog<NotAllowed>(Reason("New file available  via pldm is not "
                                 "allowed due to new file request send failed"));
     }
+    freePLDMInstanceID(pldmInstanceId, mctpEndPointId);
+    pldmClose();
 }
+
 } // namespace openpower::dump::pldm

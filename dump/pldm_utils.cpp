@@ -1,93 +1,174 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "pldm_utils.hpp"
+
 #include "xyz/openbmc_project/Common/error.hpp"
 
 #include <fmt/core.h>
 #include <libpldm/base.h>
 #include <libpldm/pldm.h>
+#include <libpldm/transport.h>
+#include <libpldm/transport/mctp-demux.h>
+#include <poll.h>
 
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/log.hpp>
 
 namespace openpower::dump::pldm
 {
+
 using namespace phosphor::logging;
-namespace internal
-{
-std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
-                       const std::string& interface)
-{
-    using namespace phosphor::logging;
-    constexpr auto objectMapperName = "xyz.openbmc_project.ObjectMapper";
-    constexpr auto objectMapperPath = "/xyz/openbmc_project/object_mapper";
-
-    auto method = bus.new_method_call(objectMapperName, objectMapperPath,
-                                      objectMapperName, "GetObject");
-
-    method.append(path);
-    method.append(std::vector<std::string>({interface}));
-
-    std::vector<std::pair<std::string, std::vector<std::string>>> response;
-
-    try
-    {
-        auto reply = bus.call(method);
-        reply.read(response);
-        if (response.empty())
-        {
-            log<level::ERR>(fmt::format("Error in mapper response for getting "
-                                        "service name, PATH({}), INTERFACE({})",
-                                        path, interface)
-                                .c_str());
-            return std::string{};
-        }
-    }
-    catch (const sdbusplus::exception::exception& e)
-    {
-        log<level::ERR>(fmt::format("Error in mapper method call, "
-                                    "errormsg({}), PATH({}), INTERFACE({})",
-                                    e.what(), path, interface)
-                            .c_str());
-        return std::string{};
-    }
-    return response[0].first;
-}
-} // namespace internal
-
 using NotAllowed = sdbusplus::xyz::openbmc_project::Common::Error::NotAllowed;
 using Reason = xyz::openbmc_project::Common::NotAllowed::REASON;
 
-int openPLDM()
+pldm_instance_db* pldmInstanceIdDb = nullptr;
+pldm_transport* pldmTransport = nullptr;
+pldm_transport_mctp_demux* mctpDemux = nullptr;
+
+PLDMInstanceManager::PLDMInstanceManager()
 {
-    auto fd = pldm_open();
+    initPLDMInstanceIdDb();
+}
+
+PLDMInstanceManager::~PLDMInstanceManager()
+{
+    destroyPLDMInstanceIdDb();
+}
+
+void initPLDMInstanceIdDb()
+{
+    auto rc = pldm_instance_db_init_default(&pldmInstanceIdDb);
+    if (rc)
+    {
+        log<level::ERR>(
+            std::format("Error calling pldm_instance_db_init_default RC{}", rc)
+                .c_str());
+        elog<NotAllowed>(
+            Reason("Required host dump action via pldm is not allowed due "
+                   "to initPLDMInstanceIdDb failed"));
+    }
+}
+
+void destroyPLDMInstanceIdDb()
+{
+    auto rc = pldm_instance_db_destroy(pldmInstanceIdDb);
+    if (rc)
+    {
+        log<level::ERR>(
+            std::format("pldm_instance_db_destroy failed RC{}", rc).c_str());
+    }
+}
+
+pldm_instance_id_t getPLDMInstanceID(uint8_t tid)
+{
+    pldm_instance_id_t instanceID = 0;
+
+    auto rc = pldm_instance_id_alloc(pldmInstanceIdDb, tid, &instanceID);
+    if (rc == -EAGAIN)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        rc = pldm_instance_id_alloc(pldmInstanceIdDb, tid, &instanceID);
+    }
+
+    if (rc)
+    {
+        log<level::ERR>(
+            std::format(
+                "getPLDMInstanceID: Failed to alloc ID for TID {}. RC{}", tid,
+                rc)
+                .c_str());
+        elog<NotAllowed>(
+            Reason("Failure in communicating with libpldm service, "
+                   "service may not be running"));
+    }
+    log<level::INFO>(
+        std::format("got tid {} and set instanceID to {}", tid, instanceID)
+            .c_str());
+
+    return instanceID;
+}
+
+void freePLDMInstanceID(pldm_instance_id_t instanceID, uint8_t tid)
+{
+    auto rc = pldm_instance_id_free(pldmInstanceIdDb, tid, instanceID);
+    if (rc)
+    {
+        log<level::ERR>(
+            std::format(
+                "freePLDMInstanceID: Failed to free ID {} for TID {}. RC{}",
+                instanceID, tid, rc)
+                .c_str());
+    }
+}
+
+int openPLDM(mctp_eid_t eid)
+{
+    auto fd = -1;
+    if (pldmTransport)
+    {
+        log<level::ERR>("openPLDM: pldmTransport already setup!");
+        elog<NotAllowed>(
+            Reason("Required host dump action via pldm is not allowed because "
+                   "pldmTransport already setup"));
+        return fd;
+    }
+    fd = openMctpDemuxTransport(eid);
     if (fd < 0)
     {
         auto e = errno;
-        log<level::ERR>(fmt::format("pldm_open failed, errno({}), FD({})", e,
-                                    static_cast<int>(fd))
-                            .c_str());
-        elog<NotAllowed>(Reason("Required host dump action via pldm is not "
-                                "allowed due to pldm_open failed"));
+        log<level::ERR>(
+            fmt::format("openPLDM failed, errno({}), FD({})", e, fd).c_str());
+        elog<NotAllowed>(
+            Reason("Required host dump action via pldm is not allowed due "
+                   "to openPLDM failed"));
     }
     return fd;
 }
 
-uint8_t getPLDMInstanceID(uint8_t eid)
+int openMctpDemuxTransport(mctp_eid_t eid)
 {
-    constexpr auto pldmRequester = "xyz.openbmc_project.PLDM.Requester";
-    constexpr auto pldm = "/xyz/openbmc_project/pldm";
+    int rc = pldm_transport_mctp_demux_init(&mctpDemux);
+    if (rc)
+    {
+        log<level::ERR>(std::format("openMctpDemuxTransport: Failed to init "
+                                    "MCTP demux transport, errno={}/{}",
+                                    rc, strerror(rc))
+                            .c_str());
+        return rc;
+    }
 
-    auto bus = sdbusplus::bus::new_default();
-    auto service = internal::getService(bus, pldm, pldmRequester);
+    rc = pldm_transport_mctp_demux_map_tid(mctpDemux, eid, eid);
+    if (rc)
+    {
+        log<level::ERR>(std::format("openMctpDemuxTransport: Failed to setup "
+                                    "tid to eid mapping, errno={}/{}",
+                                    errno, strerror(errno))
+                            .c_str());
+        pldmClose();
+        return rc;
+    }
+    pldmTransport = pldm_transport_mctp_demux_core(mctpDemux);
 
-    auto method = bus.new_method_call(service.c_str(), pldm, pldmRequester,
-                                      "GetInstanceId");
-    method.append(eid);
-    auto reply = bus.call(method);
-
-    uint8_t instanceID = 0;
-    reply.read(instanceID);
-
-    return instanceID;
+    struct pollfd pollfd;
+    rc = pldm_transport_mctp_demux_init_pollfd(pldmTransport, &pollfd);
+    if (rc)
+    {
+        log<level::ERR>(
+            std::format(
+                "openMctpDemuxTransport: Failed to get pollfd , errno={}/{}",
+                errno, strerror(errno))
+                .c_str());
+        pldmClose();
+        return rc;
+    }
+    return pollfd.fd;
 }
+
+void pldmClose()
+{
+    pldm_transport_mctp_demux_destroy(mctpDemux);
+    mctpDemux = nullptr;
+    pldmTransport = nullptr;
+}
+
 } // namespace openpower::dump::pldm
