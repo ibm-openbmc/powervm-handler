@@ -78,7 +78,7 @@ void HostOffloaderQueue::timerExpired()
 
 void HostOffloaderQueue::hostStateChange(bool isRunning)
 {
-    if(isHostRunning != isRunning)
+    if (isHostRunning != isRunning)
     {
         isHostRunning = isRunning;
         if (isHostRunning)
@@ -132,9 +132,14 @@ void HostOffloaderQueue::offload()
         auto iter = _offloadDumpList.begin();
         _offloadObjPath = iter->first;
         object_path path = _offloadObjPath;
-        uint32_t id = std::stoul(path.filename());
-        uint64_t size = getDumpSize(_bus, _offloadObjPath);
+        char* end;
         DumpType type = iter->second;
+        uint32_t id;
+        if (type == DumpType::bmc)
+            id = std::stoul(path.filename());
+        else
+            id = std::strtoul(path.filename().c_str(), &end, 16);
+        uint64_t size = getDumpSize(_bus, _offloadObjPath);
         log<level::INFO>(
             fmt::format("Queue offload initiating offload ({}) id ({}) "
                         "type ({}) size ({})",
