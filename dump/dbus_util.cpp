@@ -186,7 +186,17 @@ const std::vector<std::string>
             "/xyz/openbmc_project/object_mapper",
             "xyz.openbmc_project.ObjectMapper", "GetSubTreePaths");
         const int32_t depth = 0;
-        std::vector<std::string> intf{entryIntf};
+        std::vector<std::string> intf;
+        if (entryIntf.find("System") != std::string::npos)
+        {
+            intf.assign({"com.ibm.Dump.Entry.SBE",
+                         "com.ibm.Dump.Entry.Hostboot",
+                         "com.ibm.Dump.Entry.Hardware"});
+        }
+        else
+        {
+            intf.push_back(entryIntf);
+        }
         mapperCall.append(dumpObjPath);
         mapperCall.append(depth);
         mapperCall.append(intf);

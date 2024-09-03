@@ -5,8 +5,8 @@
 #include <fmt/format.h>
 #include <libpldm/file_io.h>
 
+#include <format>
 #include <phosphor-logging/log.hpp>
-#include <sstream>
 
 namespace openpower::dump::pldm
 {
@@ -16,9 +16,7 @@ using ::phosphor::logging::log;
 void sendNewDumpCmd(uint32_t dumpId, DumpType dumpType, uint64_t dumpSize)
 {
     uint32_t pldmDumpType = 0;
-    std::stringstream ss;
-    ss << std::hex << std::uppercase << dumpId;
-    std::string dumpIdString = ss.str();
+    std::string dumpIdString = std::format("{:0>8X}", dumpId);
     // TODO https://github.com/ibm-openbmc/powervm-handler/issues/9
     switch (dumpType)
     {
