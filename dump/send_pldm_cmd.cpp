@@ -3,7 +3,7 @@
 #include "pldm_oem_cmds.hpp"
 
 #include <fmt/format.h>
-#include <libpldm/file_io.h>
+#include <libpldm/oem/ibm/file_io.h>
 
 #include <format>
 #include <phosphor-logging/log.hpp>
