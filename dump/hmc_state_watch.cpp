@@ -14,8 +14,7 @@ using ::phosphor::logging::log;
 
 HMCStateWatch::HMCStateWatch(sdbusplus::bus::bus& bus,
                              HostOffloaderQueue& dumpQueue) :
-    _bus(bus),
-    _dumpQueue(dumpQueue)
+    _bus(bus), _dumpQueue(dumpQueue)
 {
     _hmcStatePropWatch = std::make_unique<sdbusplus::bus::match_t>(
         _bus,
@@ -27,43 +26,44 @@ HMCStateWatch::HMCStateWatch(sdbusplus::bus::bus& bus,
 
 void HMCStateWatch::propertyChanged(sdbusplus::message::message& msg)
 {
-    using BiosBaseTableItem = std::tuple<
-        std::string, bool, std::string, std::string, std::string,
-        std::variant<int64_t, std::string>, std::variant<int64_t, std::string>,
-        std::vector<
-            std::tuple<std::string, std::variant<int64_t, std::string>>>>;
-    using BiosBaseTable =
-        std::variant<std::map<std::string, BiosBaseTableItem>>;
-    using BiosBaseTableType = std::map<std::string, BiosBaseTable>;
-
-    std::string object;
-    BiosBaseTableType propMap;
-    msg.read(object, propMap);
-    for (auto prop : propMap)
+    if (msg.is_method_error())
     {
-        if (prop.first == "BaseBIOSTable")
+        log<level::ERR>("Error in reading BIOS attribute signal");
+        return;
+    }
+
+    using BiosBaseTableMap =
+        std::map<std::string, std::variant<BaseBIOSTableItemList>>;
+    std::string object;
+    BiosBaseTableMap propMap;
+    msg.read(object, propMap);
+    if (auto it = propMap.find("BaseBIOSTable"); it != propMap.end())
+    {
+        const auto& baseBiosTableItemList =
+            std::get<BaseBIOSTableItemList>(it->second);
+        auto attrIt = baseBiosTableItemList.find("pvm_hmc_managed");
+
+        if (attrIt != baseBiosTableItemList.end())
         {
-            auto list = std::get<0>(prop.second);
-            for (const auto& item : list)
+            const auto& attrValue = std::get<5>(attrIt->second);
+
+            if (std::holds_alternative<std::string>(attrValue))
             {
-                std::string attributeName = std::get<0>(item);
-                if (attributeName == "pvm_hmc_managed")
+                const std::string& strValue = std::get<std::string>(attrValue);
+                if (strValue == "Enabled")
                 {
-                    auto attrValue = std::get<5>(std::get<1>(item));
-                    auto val = std::get_if<std::string>(&attrValue);
-                    if (val != nullptr && *val == "Enabled")
-                    {
-                        _dumpQueue.hmcStateChange(true);
-                    }
-                    else
-                    {
-                        _dumpQueue.hmcStateChange(false);
-                    }
-                    break;
+                    _dumpQueue.hmcStateChange(true);
                 }
+                else
+                {
+                    _dumpQueue.hmcStateChange(false);
+                }
+            }
+            else
+            {
+                log<level::ERR>("Unexpected value type for 'pvm_hmc_managed'");
             }
         }
     }
 }
-
 } // namespace openpower::dump

@@ -14,6 +14,14 @@ using ::phosphor::logging::level;
 using ::phosphor::logging::log;
 using ::sdbusplus::message::object_path;
 
+using BaseBIOSTableItem = std::tuple<
+    std::string, bool, std::string, std::string, std::string,
+    std::variant<int64_t, std::string>, std::variant<int64_t, std::string>,
+    std::vector<std::tuple<std::string, std::variant<int64_t, std::string>,
+                           std::string>>>;
+
+using BaseBIOSTableItemList = std::map<std::string, BaseBIOSTableItem>;
+
 /**
  * @brief Read progress property from the interface map object
  * @param[in] propMap map of properties and its values
