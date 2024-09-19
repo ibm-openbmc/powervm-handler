@@ -176,9 +176,9 @@ const std::vector<std::string>
         std::vector<std::string> intf;
         if (entryIntf.find("System") != std::string::npos)
         {
-            intf.assign({"com.ibm.Dump.Entry.SBE",
-                         "com.ibm.Dump.Entry.Hostboot",
-                         "com.ibm.Dump.Entry.Hardware"});
+            intf.assign(
+                {"com.ibm.Dump.Entry.SBE", "com.ibm.Dump.Entry.Hostboot",
+                 "com.ibm.Dump.Entry.Hardware"});
         }
         else
         {

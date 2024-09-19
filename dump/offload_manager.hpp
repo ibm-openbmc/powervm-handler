@@ -5,9 +5,10 @@
 #include "host_state_watch.hpp"
 #include "offload_handler.hpp"
 
-#include <memory>
 #include <sdbusplus/bus.hpp>
 #include <sdeventplus/source/event.hpp>
+
+#include <memory>
 
 namespace openpower::dump
 {

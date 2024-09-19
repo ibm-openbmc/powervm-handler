@@ -4,8 +4,9 @@
 
 #include <fmt/format.h>
 
-#include <cstdint>
 #include <phosphor-logging/log.hpp>
+
+#include <cstdint>
 
 namespace openpower::dump
 {
@@ -106,7 +107,6 @@ bool isHostRunning(sdbusplus::bus::bus& bus);
  * @param[in] entryIntf identifies type of the dump
  * @return D-Bus object paths
  */
-const std::vector<std::string>
-    getDumpEntryObjPaths(sdbusplus::bus::bus& bus,
-                         const std::string& entryIntf);
+const std::vector<std::string> getDumpEntryObjPaths(
+    sdbusplus::bus::bus& bus, const std::string& entryIntf);
 } // namespace openpower::dump

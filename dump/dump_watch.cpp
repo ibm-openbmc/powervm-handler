@@ -19,8 +19,7 @@ using ::sdbusplus::bus::match::rules::sender;
 
 DumpWatch::DumpWatch(sdbusplus::bus::bus& bus, HostOffloaderQueue& dumpQueue,
                      const std::string& entryObjPath, DumpType dumpType) :
-    _bus(bus),
-    _dumpQueue(dumpQueue), _dumpType(dumpType)
+    _bus(bus), _dumpQueue(dumpQueue), _dumpType(dumpType)
 {
     _intfAddWatch = std::make_unique<sdbusplus::bus::match_t>(
         bus,

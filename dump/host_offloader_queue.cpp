@@ -20,8 +20,7 @@ constexpr auto timeoutInMilliSeconds = 5000; // 5 sec
 
 HostOffloaderQueue::HostOffloaderQueue(sdbusplus::bus::bus& bus,
                                        sdeventplus::Event& event) :
-    _bus(bus),
-    _event(event), _offloadTimeout(timeoutInMilliSeconds),
+    _bus(bus), _event(event), _offloadTimeout(timeoutInMilliSeconds),
     _offloadTimer(
         event, std::bind(std::mem_fn(&HostOffloaderQueue::timerExpired), this),
         _offloadTimeout)

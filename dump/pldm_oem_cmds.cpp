@@ -8,10 +8,11 @@
 #include <libpldm/platform.h>
 #include <unistd.h>
 
-#include <fstream>
 #include <phosphor-logging/elog-errors.hpp>
 #include <phosphor-logging/log.hpp>
 #include <sdbusplus/bus.hpp>
+
+#include <fstream>
 
 namespace openpower::dump::pldm
 {
@@ -47,9 +48,9 @@ mctp_eid_t readEID()
         else
         {
             log<level::ERR>("EID file was empty");
-            elog<NotAllowed>(
-                Reason("Required host dump action via pldm is not "
-                       "allowed due to mctp end point read failed"));
+            elog<NotAllowed>(Reason(
+                "Required host dump action via pldm is not "
+                "allowed due to mctp end point read failed"));
         }
     }
 
