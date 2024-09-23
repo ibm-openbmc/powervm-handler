@@ -9,4 +9,9 @@ project(
   ])  
 
 cpp = meson.get_compiler('cpp')
+
+if cpp.has_header('poll.h')
+  add_project_arguments('-DPLDM_HAS_POLL=1', language: 'cpp')
+endif
+
 subdir('dump')
