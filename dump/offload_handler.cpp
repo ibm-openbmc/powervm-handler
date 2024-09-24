@@ -16,16 +16,13 @@ using ::openpower::dump::utility::ManagedObjectType;
 using ::phosphor::logging::level;
 using ::phosphor::logging::log;
 
-OffloadHandler::OffloadHandler(sdbusplus::bus::bus& bus,
-                               HostOffloaderQueue& dumpOffloader,
-                               const std::string& entryIntf,
-                               const std::string& entryObjPath,
-                               DumpType dumpType) :
-    _bus(bus),
-    _dumpOffloader(dumpOffloader), _entryIntf(entryIntf), _dumpType(dumpType),
-    _dumpWatch(bus, dumpOffloader, entryObjPath, dumpType)
-{
-}
+OffloadHandler::OffloadHandler(
+    sdbusplus::bus::bus& bus, HostOffloaderQueue& dumpOffloader,
+    const std::string& entryIntf, const std::string& entryObjPath,
+    DumpType dumpType) :
+    _bus(bus), _dumpOffloader(dumpOffloader), _entryIntf(entryIntf),
+    _dumpType(dumpType), _dumpWatch(bus, dumpOffloader, entryObjPath, dumpType)
+{}
 
 void OffloadHandler::offload()
 {

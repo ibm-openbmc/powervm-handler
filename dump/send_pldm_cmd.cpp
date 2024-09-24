@@ -5,8 +5,9 @@
 #include <fmt/format.h>
 #include <libpldm/oem/ibm/file_io.h>
 
-#include <format>
 #include <phosphor-logging/log.hpp>
+
+#include <format>
 
 namespace openpower::dump::pldm
 {

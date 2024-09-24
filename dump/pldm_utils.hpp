@@ -29,9 +29,7 @@ struct CustomFd
      *
      *  @param[in] fd - File descriptor
      */
-    CustomFd(int fd) : fd(fd)
-    {
-    }
+    CustomFd(int fd) : fd(fd) {}
 
     ~CustomFd()
     {

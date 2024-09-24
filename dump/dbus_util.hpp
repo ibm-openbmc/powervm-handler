@@ -4,8 +4,9 @@
 
 #include <fmt/format.h>
 
-#include <cstdint>
 #include <phosphor-logging/log.hpp>
+
+#include <cstdint>
 
 namespace openpower::dump
 {
@@ -13,6 +14,14 @@ using ::openpower::dump::utility::DBusPropertiesMap;
 using ::phosphor::logging::level;
 using ::phosphor::logging::log;
 using ::sdbusplus::message::object_path;
+
+using BaseBIOSTableItem = std::tuple<
+    std::string, bool, std::string, std::string, std::string,
+    std::variant<int64_t, std::string>, std::variant<int64_t, std::string>,
+    std::vector<std::tuple<std::string, std::variant<int64_t, std::string>,
+                           std::string>>>;
+
+using BaseBIOSTableItemList = std::map<std::string, BaseBIOSTableItem>;
 
 /**
  * @brief Read progress property from the interface map object
@@ -98,7 +107,6 @@ bool isHostRunning(sdbusplus::bus::bus& bus);
  * @param[in] entryIntf identifies type of the dump
  * @return D-Bus object paths
  */
-const std::vector<std::string>
-    getDumpEntryObjPaths(sdbusplus::bus::bus& bus,
-                         const std::string& entryIntf);
+const std::vector<std::string> getDumpEntryObjPaths(
+    sdbusplus::bus::bus& bus, const std::string& entryIntf);
 } // namespace openpower::dump

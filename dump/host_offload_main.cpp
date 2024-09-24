@@ -3,10 +3,11 @@
 
 #include <fmt/format.h>
 
-#include <cstdlib>
 #include <phosphor-logging/log.hpp>
 #include <sdbusplus/bus.hpp>
 #include <sdeventplus/source/event.hpp>
+
+#include <cstdlib>
 
 using ::phosphor::logging::level;
 using ::phosphor::logging::log;

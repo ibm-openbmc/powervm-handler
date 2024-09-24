@@ -2,11 +2,12 @@
 
 #include "utility.hpp"
 
-#include <map>
 #include <sdbusplus/bus.hpp>
 #include <sdeventplus/clock.hpp>
 #include <sdeventplus/source/event.hpp>
 #include <sdeventplus/utility/timer.hpp>
+
+#include <map>
 
 namespace openpower::dump
 {

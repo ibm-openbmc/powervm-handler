@@ -15,8 +15,7 @@ using ::phosphor::logging::log;
 
 HostStateWatch::HostStateWatch(sdbusplus::bus::bus& bus,
                                HostOffloaderQueue& dumpQueue) :
-    _bus(bus),
-    _dumpQueue(dumpQueue)
+    _bus(bus), _dumpQueue(dumpQueue)
 {
     _hostStatePropWatch = std::make_unique<sdbusplus::bus::match_t>(
         _bus,

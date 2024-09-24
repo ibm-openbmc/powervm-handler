@@ -7,11 +7,9 @@ namespace openpower::dump
 {
 OffloadManager::OffloadManager(sdbusplus::bus::bus& bus,
                                sdeventplus::Event& event) :
-    _bus(bus),
-    _dumpQueue(bus, event), _hostStateWatch(bus, _dumpQueue),
+    _bus(bus), _dumpQueue(bus, event), _hostStateWatch(bus, _dumpQueue),
     _hmcStateWatch(bus, _dumpQueue)
 {
-
     // add bmc dump offload handler to the list of dump types to offload
     std::unique_ptr<OffloadHandler> bmcDump = std::make_unique<OffloadHandler>(
         _bus, _dumpQueue, bmcEntryIntf, bmcEntryObjPath, DumpType::bmc);
