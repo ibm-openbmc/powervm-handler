@@ -52,16 +52,15 @@ void HMCStateWatch::propertyChanged(sdbusplus::message::message& msg)
                 const std::string& strValue = std::get<std::string>(attrValue);
                 if (strValue == "Enabled")
                 {
-                    _dumpQueue.hmcStateChange(true);
-                }
-                else
-                {
-                    _dumpQueue.hmcStateChange(false);
+                    // if it is hmc managed exit the service
+                    log<level::INFO>("HMC managed system exit the application");
+                    std::exit(0);
                 }
             }
             else
             {
                 log<level::ERR>("Unexpected value type for 'pvm_hmc_managed'");
+                std::exit(0);
             }
         }
     }

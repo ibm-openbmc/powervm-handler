@@ -27,7 +27,16 @@ HostOffloaderQueue::HostOffloaderQueue(sdbusplus::bus::bus& bus,
 {
     // initally read the value as this app might run after host is started
     isHostRunning = openpower::dump::isHostRunning(_bus);
-    isHMCManagedSystem = openpower::dump::isSystemHMCManaged(_bus);
+    try
+    {
+        isHMCManagedSystem = openpower::dump::isSystemHMCManaged(_bus);
+    }
+    catch (const std::exception& ex)
+    {
+        // if failed to read at startup wait for hmc state change message
+        log<level::INFO>(
+            "Failed to read hmc managed property from BIOSConfig manager");
+    }
 
     // intially stop the timer, start only when dumps are added to the queue
     stopTimer();
