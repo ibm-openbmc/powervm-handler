@@ -104,7 +104,7 @@ class HostOffloaderQueue
     bool isHostRunning = false;
 
     /** @brief Flag to indicate whether the system is HMC managed */
-    bool isHMCManagedSystem = false;
+    bool isHMCManagedSystem = true; // start as hmc managed system
     /**
      * @brief Attempt dump offload at every 5 seconds
      */

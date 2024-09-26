@@ -83,49 +83,29 @@ uint64_t getDumpSize(sdbusplus::bus::bus& bus, const std::string& objectPath)
 
 bool isSystemHMCManaged(sdbusplus::bus::bus& bus)
 {
-    try
-    {
-        auto retVal = readDBusProperty<std::variant<BaseBIOSTableItemList>>(
-            bus, "xyz.openbmc_project.BIOSConfigManager",
-            "/xyz/openbmc_project/bios_config/manager",
-            "xyz.openbmc_project.BIOSConfig.Manager", "BaseBIOSTable");
+    auto retVal = readDBusProperty<std::variant<BaseBIOSTableItemList>>(
+        bus, "xyz.openbmc_project.BIOSConfigManager",
+        "/xyz/openbmc_project/bios_config/manager",
+        "xyz.openbmc_project.BIOSConfig.Manager", "BaseBIOSTable");
 
-        if (std::holds_alternative<BaseBIOSTableItemList>(retVal))
+    if (std::holds_alternative<BaseBIOSTableItemList>(retVal))
+    {
+        const auto& baseBiosTable = std::get<BaseBIOSTableItemList>(retVal);
+        auto it = baseBiosTable.find("pvm_hmc_managed");
+        if (it != baseBiosTable.end())
         {
-            const auto& baseBiosTable = std::get<BaseBIOSTableItemList>(retVal);
-            auto it = baseBiosTable.find("pvm_hmc_managed");
-            if (it != baseBiosTable.end())
+            const auto& attrValue = std::get<5>(it->second);
+            if (std::holds_alternative<std::string>(attrValue))
             {
-                const auto& attrValue = std::get<5>(it->second);
-                if (std::holds_alternative<std::string>(attrValue))
-                {
-                    const std::string& strValue =
-                        std::get<std::string>(attrValue);
-                    log<level::INFO>(
-                        fmt::format("isSystemHMCManaged value ({})", strValue)
-                            .c_str());
-                    return strValue == "Enabled";
-                }
-                else
-                {
-                    log<level::ERR>(
-                        "Unexpected value type for 'pvm_hmc_managed'");
-                    return false;
-                }
-            }
-            else
-            {
-                log<level::ERR>("Attribute 'pvm_hmc_managed' not found");
-                return false;
+                const std::string& strValue = std::get<std::string>(attrValue);
+                log<level::INFO>(
+                    fmt::format("isSystemHMCManaged value ({})", strValue)
+                        .c_str());
+                return strValue == "Enabled";
             }
         }
     }
-    catch (const std::exception& ex)
-    {
-        log<level::INFO>(
-            fmt::format("Error while checking HMC status ex({})", ex.what())
-                .c_str());
-    }
+    throw std::runtime_error("Failed to read HMC managed property");
     return false;
 }
 

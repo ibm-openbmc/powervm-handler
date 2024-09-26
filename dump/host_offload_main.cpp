@@ -24,10 +24,19 @@ int main()
         // runtime.
         // Not creating offloader objects if system is HMC managed
         // TODO #https://github.com/ibm-openbmc/powervm-handler/issues/8
-        if (openpower::dump::isSystemHMCManaged(bus))
+        try
         {
-            log<level::ERR>("HMC managed system exiting the application");
-            return 0;
+            if (openpower::dump::isSystemHMCManaged(bus))
+            {
+                log<level::ERR>("HMC managed system exiting the application");
+                return 0;
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            // BIOSconfig manager takes time to set the property so wait for
+            // property change callback method
+            log<level::INFO>("Failed to read 'pvm_hmc_managed' property");
         }
         openpower::dump::OffloadManager manager(bus, event);
         manager.offload();
