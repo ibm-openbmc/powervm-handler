@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+#include <libpldm/instance-id.h>
 #include <libpldm/pldm.h>
 #include <unistd.h>
 
@@ -45,6 +46,31 @@ struct CustomFd
     }
 };
 } // namespace internal
+class PLDMInstanceManager
+{
+  public:
+    PLDMInstanceManager(const PLDMInstanceManager&) = delete;
+    PLDMInstanceManager& operator=(const PLDMInstanceManager&) = delete;
+
+    PLDMInstanceManager();
+    ~PLDMInstanceManager();
+
+  private:
+    /**
+     * @brief Instantiates an instance ID database object
+     *
+     * @return void
+     **/
+    void initPLDMInstanceIdDb();
+
+    /**
+     * @brief Destroys an instance ID database object
+     *
+     * @return void
+     **/
+    void destroyPLDMInstanceIdDb();
+};
+
 /**
  * @brief Opens the PLDM file descriptor
  *
@@ -57,10 +83,20 @@ int openPLDM();
 /**
  * @brief Returns the PLDM instance ID to use for PLDM commands
  *
- * @param[in] eid - The PLDM EID
+ * @param[in] tid - the terminus ID the instance ID is associated with
  *
- * @return uint8_t - The instance ID
+ * @return pldm_instance_id_t - The instance ID
  **/
-uint8_t getPLDMInstanceID(uint8_t eid);
+pldm_instance_id_t getPLDMInstanceID(uint8_t tid);
+
+/**
+ * @brief Free the PLDM instance ID
+ *
+ * @param[in] tid - the terminus ID the instance ID is associated with
+ * @param[in] instanceID - The PLDM instance ID
+ *
+ * @return void
+ **/
+void freePLDMInstanceID(pldm_instance_id_t instanceID, uint8_t tid);
 
 } // namespace openpower::dump::pldm

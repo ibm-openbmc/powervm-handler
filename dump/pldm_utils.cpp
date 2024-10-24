@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
-
 #include "xyz/openbmc_project/Common/error.hpp"
 
 #include <fmt/core.h>
 #include <libpldm/base.h>
+#include <libpldm/instance-id.h>
 #include <libpldm/pldm.h>
 
 #include <phosphor-logging/elog-errors.hpp>
+#include <phosphor-logging/lg2.hpp>
 #include <phosphor-logging/log.hpp>
+#include <pldm_utils.hpp>
 
 namespace openpower::dump::pldm
 {
@@ -57,6 +59,38 @@ std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
 using NotAllowed = sdbusplus::xyz::openbmc_project::Common::Error::NotAllowed;
 using Reason = xyz::openbmc_project::Common::NotAllowed::REASON;
 
+pldm_instance_db* pldmInstanceIdDb = nullptr;
+
+PLDMInstanceManager::PLDMInstanceManager()
+{
+    initPLDMInstanceIdDb();
+}
+
+PLDMInstanceManager::~PLDMInstanceManager()
+{
+    destroyPLDMInstanceIdDb();
+}
+
+void PLDMInstanceManager::initPLDMInstanceIdDb()
+{
+    auto rc = pldm_instance_db_init_default(&pldmInstanceIdDb);
+    if (rc)
+    {
+        lg2::error("Error calling pldm_instance_db_init_default, rc = {RC}",
+                   "RC", rc);
+        elog<NotAllowed>(Reason("Failed to init PLDM instance ID"));
+    }
+}
+
+void PLDMInstanceManager::destroyPLDMInstanceIdDb()
+{
+    auto rc = pldm_instance_db_destroy(pldmInstanceIdDb);
+    if (rc)
+    {
+        lg2::error("pldm_instance_db_destroy failed rc = {RC}", "RC", rc);
+    }
+}
+
 int openPLDM()
 {
     auto fd = pldm_open();
@@ -66,28 +100,45 @@ int openPLDM()
         log<level::ERR>(fmt::format("pldm_open failed, errno({}), FD({})", e,
                                     static_cast<int>(fd))
                             .c_str());
-        elog<NotAllowed>(Reason("Required host dump action via pldm is not "
-                                "allowed due to pldm_open failed"));
+        elog<NotAllowed>(Reason("Failed to open PLDM"));
     }
     return fd;
 }
 
-uint8_t getPLDMInstanceID(uint8_t eid)
+pldm_instance_id_t getPLDMInstanceID(uint8_t tid)
 {
-    constexpr auto pldmRequester = "xyz.openbmc_project.PLDM.Requester";
-    constexpr auto pldm = "/xyz/openbmc_project/pldm";
+    pldm_instance_id_t instanceID = 0;
 
-    auto bus = sdbusplus::bus::new_default();
-    auto service = internal::getService(bus, pldm, pldmRequester);
+    auto rc = pldm_instance_id_alloc(pldmInstanceIdDb, tid, &instanceID);
+    if (rc == -EAGAIN)
+    {
+        lg2::info(
+            "Failed to get instance id trying again after 100ms, rc = {RC}",
+            "RC", rc);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        rc = pldm_instance_id_alloc(pldmInstanceIdDb, tid, &instanceID);
+    }
 
-    auto method = bus.new_method_call(service.c_str(), pldm, pldmRequester,
-                                      "GetInstanceId");
-    method.append(eid);
-    auto reply = bus.call(method);
-
-    uint8_t instanceID = 0;
-    reply.read(instanceID);
+    if (rc)
+    {
+        lg2::error("Failed to get instance id, rc = {RC}", "RC", rc);
+        elog<NotAllowed>(Reason("Failed to get PLDM instance ID"));
+    }
+    lg2::info("Got instanceId: {INSTANCE_ID} from PLDM eid: {EID}",
+              "INSTANCE_ID", instanceID, "EID", tid);
 
     return instanceID;
 }
+
+void freePLDMInstanceID(pldm_instance_id_t instanceID, uint8_t tid)
+{
+    auto rc = pldm_instance_id_free(pldmInstanceIdDb, tid, instanceID);
+    if (rc)
+    {
+        lg2::error(
+            "pldm_instance_id_free failed to free id = {ID} of tid = {TID} rc = {RC}",
+            "ID", instanceID, "TID", tid, "RC", rc);
+    }
+}
+
 } // namespace openpower::dump::pldm

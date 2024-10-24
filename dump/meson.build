@@ -22,7 +22,11 @@ phosphor_logging_dep = dependency(
 )
 
 systemd_dep = dependency('systemd')
-pldm_dep = dependency('libpldm')
+
+libpldm_dep = dependency(
+    'libpldm',
+    default_options: ['oem-ibm=enabled'],
+)
 
 configure_file(
     input: 'config.h.in',
@@ -35,7 +39,7 @@ dump_offload_deps = [
     phosphor_logging_dep,
     sdbusplus_dep,
     sdeventplus_dep,
-    pldm_dep,
+    libpldm_dep,
 ]
 
 subdir('dist')
