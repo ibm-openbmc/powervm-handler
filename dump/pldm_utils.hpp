@@ -3,49 +3,12 @@
 #pragma once
 #include <libpldm/instance-id.h>
 #include <libpldm/pldm.h>
+#include <libpldm/transport.h>
 #include <unistd.h>
 
 namespace openpower::dump::pldm
 {
-namespace internal
-{
-/** @struct CustomFd
- *
- *  RAII wrapper for file descriptor.
- */
-struct CustomFd
-{
-  private:
-    /** @brief File descriptor */
-    int fd = -1;
-
-  public:
-    CustomFd() = delete;
-    CustomFd(const CustomFd&) = delete;
-    CustomFd& operator=(const CustomFd&) = delete;
-    CustomFd(CustomFd&&) = delete;
-    CustomFd& operator=(CustomFd&&) = delete;
-
-    /** @brief Saves File descriptor and uses it to do file operation
-     *
-     *  @param[in] fd - File descriptor
-     */
-    CustomFd(int fd) : fd(fd) {}
-
-    ~CustomFd()
-    {
-        if (fd >= 0)
-        {
-            close(fd);
-        }
-    }
-
-    int operator()() const
-    {
-        return fd;
-    }
-};
-} // namespace internal
+extern struct pldm_transport* pldmTransport;
 class PLDMInstanceManager
 {
   public:
@@ -72,13 +35,23 @@ class PLDMInstanceManager
 };
 
 /**
- * @brief Opens the PLDM file descriptor
+ * @brief setup PLDM transport for sending and receiving messages
  *
+ * @param[in] eid - MCTP endpoint ID
  * @return file descriptor on success and throw
  *         exception (xyz::openbmc_project::Common::Error::NotAllowed) on
  *         failures.
  */
-int openPLDM();
+int openPLDM(mctp_eid_t eid);
+
+/** @brief Opens the MCTP socket for sending and receiving messages.
+ *
+ * @param[in] eid - MCTP endpoint ID
+ */
+int openMctpDemuxTransport(mctp_eid_t eid);
+
+/** @brief Close the PLDM file */
+void pldmClose();
 
 /**
  * @brief Returns the PLDM instance ID to use for PLDM commands

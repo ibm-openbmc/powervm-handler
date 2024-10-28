@@ -28,10 +28,15 @@ libpldm_dep = dependency(
     default_options: ['oem-ibm=enabled'],
 )
 
+conf_data = configuration_data()
+if cpp.has_header('poll.h')
+  add_project_arguments('-DPLDM_HAS_POLL=1', language: 'cpp')
+endif
+
 configure_file(
     input: 'config.h.in',
     output: 'config.h',
-    configuration: configuration_data(),
+    configuration: conf_data,
 )
 
 dump_offload_deps = [

@@ -92,8 +92,8 @@ void newFileAvailable(uint32_t dumpId, pldm_fileio_file_type pldmDumpType,
             "Acknowledging new file request failed due to encoding error"));
     }
 
-    internal::CustomFd pldmFd = openPLDM();
-    if (pldmFd() < 0)
+    retCode = openPLDM(mctpEndPointId);
+    if (retCode < 0)
     {
         freePLDMInstanceID(pldmInstanceId, mctpEndPointId);
         log<level::ERR>(
@@ -105,11 +105,14 @@ void newFileAvailable(uint32_t dumpId, pldm_fileio_file_type pldmDumpType,
             Reason("Failed to open PLDM for new dump available request"));
     }
 
-    retCode = pldm_send(mctpEndPointId, pldmFd(), newFileAvailReqMsg.data(),
-                        newFileAvailReqMsg.size());
+    pldm_tid_t pldmTID = static_cast<pldm_tid_t>(mctpEndPointId);
+    retCode = pldm_transport_send_msg(pldmTransport, pldmTID,
+                                      newFileAvailReqMsg.data(),
+                                      newFileAvailReqMsg.size());
     if (retCode != PLDM_REQUESTER_SUCCESS)
     {
         freePLDMInstanceID(pldmInstanceId, mctpEndPointId);
+        pldmClose();
         auto errorNumber = errno;
         log<level::ERR>(
             fmt::format(
@@ -123,6 +126,7 @@ void newFileAvailable(uint32_t dumpId, pldm_fileio_file_type pldmDumpType,
                                 "allowed due to new file request send failed"));
     }
     freePLDMInstanceID(pldmInstanceId, mctpEndPointId);
+    pldmClose();
     lg2::info("Done. PLDM message, id: {ID}, RC: {RC}", "ID", pldmInstanceId,
               "RC", retCode);
 }
