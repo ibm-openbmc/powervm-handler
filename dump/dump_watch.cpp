@@ -41,7 +41,6 @@ void DumpWatch::interfaceAdded(sdbusplus::message::message& msg)
         sdbusplus::message::object_path objPath;
         DBusInteracesMap interfaces;
         msg.read(objPath, interfaces);
-        DBusInteracesMap::iterator iter = interfaces.begin();
         if (interfaces.find("com.ibm.Dump.Entry.Hostboot") ==
                 interfaces.end() &&
             interfaces.find("com.ibm.Dump.Entry.Hardware") ==
