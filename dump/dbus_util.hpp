@@ -2,17 +2,13 @@
 
 #include "utility.hpp"
 
-#include <fmt/format.h>
-
-#include <phosphor-logging/log.hpp>
+#include <phosphor-logging/lg2.hpp>
 
 #include <cstdint>
 
 namespace openpower::dump
 {
 using ::openpower::dump::utility::DBusPropertiesMap;
-using ::phosphor::logging::level;
-using ::phosphor::logging::log;
 using ::sdbusplus::message::object_path;
 
 using BaseBIOSTableItem = std::tuple<
@@ -83,11 +79,9 @@ T readDBusProperty(sdbusplus::bus::bus& bus, const std::string& service,
     }
     catch (const std::exception& ex)
     {
-        log<level::ERR>(
-            fmt::format("Failed to get the property ({}) interface ({}) "
-                        "object path ({}) error ({}) ",
-                        prop.c_str(), intf.c_str(), object.c_str(), ex.what())
-                .c_str());
+        lg2::error(
+            "Failed to get the property:{PROP} interface:{INTF} path:{PATH} ex:{EX}",
+            "PROP", prop, "INTF", intf, "PATH", object, "EX", ex);
         throw;
     }
     return retVal;
