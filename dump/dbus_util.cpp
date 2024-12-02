@@ -24,10 +24,9 @@ bool isDumpProgressCompleted(sdbusplus::bus::bus& bus,
     }
     catch (const std::exception& ex)
     {
-        log<level::ERR>(
-            fmt::format("Util failed to get dump ({}) progress property ({})",
-                        objectPath, ex.what())
-                .c_str());
+        lg2::error(
+            "Util failed to dump progress property path:{PATH} exception:{EX}",
+            "PATH", objectPath, "EX", ex);
         throw;
     }
     return false;
@@ -62,20 +61,18 @@ uint64_t getDumpSize(sdbusplus::bus::bus& bus, const std::string& objectPath)
         const uint64_t* sizePtr = std::get_if<uint64_t>(&retVal);
         if (sizePtr == nullptr)
         {
-            std::string err = fmt::format(
-                "Util size value not set for dump object ({})", objectPath);
-            log<level::ERR>(err.c_str());
-            throw std::runtime_error(err);
+            lg2::error(
+                "Size property value not set for dump object path:{PATH} ",
+                "PATH", objectPath);
+            throw std::runtime_error("Size property value not set for dump");
         }
         size = *sizePtr;
     }
     catch (const std::exception& ex)
     {
-        log<level::INFO>(
-            fmt::format(
-                "Util failed to get dump size property object ({}) ex({})",
-                objectPath, ex.what())
-                .c_str());
+        lg2::info("Failed to get dump size property value "
+                  "exception:{EX} path:{PATH}",
+                  "EX", ex, "PATH", objectPath);
         throw;
     }
     return size;
@@ -98,9 +95,7 @@ bool isSystemHMCManaged(sdbusplus::bus::bus& bus)
             if (std::holds_alternative<std::string>(attrValue))
             {
                 const std::string& strValue = std::get<std::string>(attrValue);
-                log<level::INFO>(
-                    fmt::format("isSystemHMCManaged value ({})", strValue)
-                        .c_str());
+                lg2::info("isSystemHMCManaged : {VALUE} ", "VALUE", strValue);
                 return strValue == "Enabled";
             }
         }
@@ -127,18 +122,16 @@ bool isHostRunning(sdbusplus::bus::bus& bus)
         }
         if (*progPtr == ProgressStages::OSRunning)
         {
-            log<level::INFO>("Util host is in  BootProgress::OSRunning");
+            lg2::info("Host is in  BootProgress::OSRunning");
             return true;
         }
     }
     catch (const std::exception& ex)
     {
-        log<level::ERR>(
-            fmt::format("Util failed to read BootProgress property ({})",
-                        ex.what())
-                .c_str());
+        lg2::error("Failed to read BootProgress property exception:{EX}", "EX",
+                   ex);
     }
-    log<level::INFO>("Util host is not in  BootProgress::OSRunning state");
+    lg2::info("Host is not in BootProgress::OSRunning state");
     return false;
 }
 
@@ -169,18 +162,13 @@ const std::vector<std::string>
         mapperCall.append(intf);
         auto response = bus.call(mapperCall);
         response.read(liObjectPaths);
-        log<level::INFO>(
-            fmt::format("Util dumps size received is ({}) entry({})",
-                        liObjectPaths.size(), entryIntf)
-                .c_str());
+        lg2::info("Dumps size received is:{SIZE} entryIntf:{INTF}", "SIZE",
+                  liObjectPaths.size(), "INTF", entryIntf);
     }
     catch (const std::exception& ex)
     {
-        log<level::ERR>(
-            fmt::format(
-                "Util failed to get dump entry objects entry({}) ex({})",
-                entryIntf, ex.what())
-                .c_str());
+        lg2::error("Failed to get dump entry intf:{INTF} ex:{EX}", "INTF",
+                   entryIntf, "EX", ex);
         throw;
     }
     return liObjectPaths;

@@ -22,12 +22,21 @@ phosphor_logging_dep = dependency(
 )
 
 systemd_dep = dependency('systemd')
-pldm_dep = dependency('libpldm')
+
+libpldm_dep = dependency(
+    'libpldm',
+    default_options: ['oem-ibm=enabled'],
+)
+
+conf_data = configuration_data()
+if cpp.has_header('poll.h')
+  add_project_arguments('-DPLDM_HAS_POLL=1', language: 'cpp')
+endif
 
 configure_file(
     input: 'config.h.in',
     output: 'config.h',
-    configuration: configuration_data(),
+    configuration: conf_data,
 )
 
 dump_offload_deps = [
@@ -35,7 +44,7 @@ dump_offload_deps = [
     phosphor_logging_dep,
     sdbusplus_dep,
     sdeventplus_dep,
-    pldm_dep,
+    libpldm_dep,
 ]
 
 subdir('dist')
