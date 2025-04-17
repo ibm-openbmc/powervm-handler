@@ -25,7 +25,8 @@ void sendNewDumpCmd(uint32_t dumpId, DumpType dumpType, uint64_t dumpSize)
             pldmDumpType = 0xF; // PLDM_FILE_TYPE_BMC_DUMP
             break;
         case DumpType::system:
-            if (dumpIdString.c_str()[0] == '3')
+            if (dumpIdString.c_str()[0] == '3' ||
+                dumpIdString.c_str()[0] == '4')
                 pldmDumpType = 0x10; // PLDM_FILE_TYPE_SBE_DUMP
             else if (dumpIdString.c_str()[0] == '2')
                 pldmDumpType = 0x11; // PLDM_FILE_TYPE_HOSTBOOT_DUMP
